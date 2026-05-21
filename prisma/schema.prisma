@@ -1,0 +1,63 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+datasource db {
+provider = "postgresql"
+}
+
+model Service {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  leads           Lead[]
+  allocationState AllocationState?
+}
+
+model AllocationState {
+  serviceId    String  @id
+  service      Service @relation(fields: [serviceId], references: [id])
+  currentIndex Int     @default(0)
+}
+
+model Provider {
+  id              Int              @id // 1 to 8 as specified
+  name            String
+  maxQuota        Int              @default(10)
+  currentQuota    Int              @default(10)
+  leadsReceived   Int              @default(0)
+  lastAssignedAt  DateTime?
+  assignments     LeadAssignment[]
+}
+
+model Lead {
+  id          String           @id @default(uuid())
+  name        String
+  phone       String
+  city        String
+  service     Service          @relation(fields: [serviceId], references: [id])
+  serviceId   String
+  description String
+  createdAt   DateTime         @default(now())
+  assignments LeadAssignment[]
+
+  @@unique([phone, serviceId], name: "phone_service_unique")
+}
+
+model LeadAssignment {
+  id         String   @id @default(uuid())
+  lead       Lead     @relation(fields: [leadId], references: [id])
+  leadId     String
+  provider   Provider @relation(fields: [providerId], references: [id])
+  providerId Int
+  assignedAt DateTime @default(now())
+
+  @@unique([leadId, providerId])
+}
+
+model WebhookEvent {
+  transactionId String   @id
+  processedAt   DateTime @default(now())
+}
